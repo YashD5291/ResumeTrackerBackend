@@ -7,9 +7,7 @@
   "regions": ["iad1"],
   "env": {
     "MONGODB_URI": "@mongodb_uri",
-    "JWT_SECRET": "@jwt_secret",
-    "NEXTAUTH_SECRET": "@nextauth_secret",
-    "NEXTAUTH_URL": "@nextauth_url"
+    "JWT_SECRET": "@jwt_secret"
   },
   "headers": [
     {
