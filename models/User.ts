@@ -56,7 +56,6 @@ const UserSchema = new Schema<IUser>({
   timestamps: true
 })
 
-UserSchema.index({ email: 1 })
 UserSchema.index({ createdAt: -1 })
 
 export const User = models.User || model<IUser>('User', UserSchema)
