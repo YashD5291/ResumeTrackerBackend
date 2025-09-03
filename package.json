@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "optionalDependencies": {},
   "dependencies": {
     "@auth/mongodb-adapter": "^3.0.0",
     "@vercel/analytics": "^1.1.1",

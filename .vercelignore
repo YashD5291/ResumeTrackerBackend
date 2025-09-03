@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+.next
+
+# Development files
+.env.local
+.env.development.local
+
+# Documentation
+docs
+README.md
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
