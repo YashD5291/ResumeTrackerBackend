@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
         recentApplications,
         totalResumes,
         applicationsByMonth,
+        applicationsByDay,
         topCompanies,
         averageResponseTime
       ] = await Promise.all([
@@ -48,6 +49,26 @@ export async function GET(request: NextRequest) {
           },
           { $sort: { '_id.year': -1, '_id.month': -1 } },
           { $limit: 12 }
+        ]),
+        
+        Application.aggregate([
+          { 
+            $match: { 
+              userId,
+              dateApplied: { $gte: thirtyDaysAgo }
+            } 
+          },
+          {
+            $group: {
+              _id: {
+                year: { $year: '$dateApplied' },
+                month: { $month: '$dateApplied' },
+                day: { $dayOfMonth: '$dateApplied' }
+              },
+              count: { $sum: 1 }
+            }
+          },
+          { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
         ]),
         
         Application.aggregate([
@@ -112,6 +133,7 @@ export async function GET(request: NextRequest) {
         },
         statusDistribution: statusMap,
         monthlyTrends: applicationsByMonth,
+        dailyTrends: applicationsByDay,
         topCompanies,
         averageResponseTime: averageResponseTime[0]?.avgResponseTime 
           ? Math.round(averageResponseTime[0].avgResponseTime / (1000 * 60 * 60 * 24))
