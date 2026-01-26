@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDashboardData } from './hooks/useDashboardData'
 
 // Components
@@ -22,8 +22,19 @@ export default function Dashboard() {
     resumes,
     analytics,
     loading,
+    applicationsLoading,
+    analyticsLoading,
     error,
     setError,
+
+    // Pagination
+    pagination,
+    filters,
+    goToPage,
+    updateFilters,
+
+    // Lazy loaders
+    loadAnalytics,
 
     // Actions
     handleAuth,
@@ -42,6 +53,13 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'applications' | 'resumes' | 'analytics'>('overview')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showResumeModal, setShowResumeModal] = useState(false)
+
+  // Lazy load analytics when viewing overview or analytics tab
+  useEffect(() => {
+    if ((activeTab === 'overview' || activeTab === 'analytics') && user) {
+      loadAnalytics()
+    }
+  }, [activeTab, user, loadAnalytics])
   
   // PDF Viewer State
   const [viewingResumeUrl, setViewingResumeUrl] = useState<string | null>(null)
@@ -88,10 +106,30 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <svg className="w-12 h-12 mx-auto animate-spin" viewBox="0 0 50 50">
+            <circle
+              cx="25"
+              cy="25"
+              r="20"
+              fill="none"
+              stroke="#e2e8f0"
+              strokeWidth="5"
+            />
+            <circle
+              cx="25"
+              cy="25"
+              r="20"
+              fill="none"
+              stroke="#3b82f6"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray="80, 200"
+              strokeDashoffset="0"
+            />
+          </svg>
+          <p className="mt-6 text-slate-500 font-medium">Loading your dashboard...</p>
         </div>
       </div>
     )
@@ -102,7 +140,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       {/* Header */}
       <DashboardHeader
         user={user}
@@ -119,6 +157,7 @@ export default function Dashboard() {
             analytics={analytics}
             applications={applications}
             resumes={resumes}
+            analyticsLoading={analyticsLoading}
           />
         )}
 
@@ -127,12 +166,17 @@ export default function Dashboard() {
           <ApplicationsTab
             applications={applications}
             resumes={resumes}
+            pagination={pagination}
+            filters={filters}
+            isLoading={applicationsLoading}
             onUpdateStatus={updateApplicationStatus}
             onDeleteApplication={deleteApplication}
             onExportData={exportData}
             onAddApplication={() => setShowAddModal(true)}
             onViewResume={handleViewResume}
             onDownloadResume={downloadResume}
+            onPageChange={goToPage}
+            onFiltersChange={updateFilters}
           />
         )}
 
@@ -182,9 +226,21 @@ export default function Dashboard() {
 
       {/* Error Toast */}
       {error && (
-        <div className="fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg">
-          {error}
-          <button onClick={() => setError('')} className="ml-4 font-bold">×</button>
+        <div className="fixed bottom-6 right-6 bg-red-500 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300">
+          <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <span className="font-medium">{error}</span>
+          <button
+            onClick={() => setError('')}
+            className="ml-2 w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
     </div>

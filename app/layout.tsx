@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Resume Tracker API',
-  description: 'Backend API for Resume Tracker Extension',
+  title: 'Resume Tracker',
+  description: 'Track your job applications and resumes',
 }
 
 export default function RootLayout({

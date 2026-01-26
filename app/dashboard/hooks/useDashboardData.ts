@@ -26,14 +26,49 @@ interface NewApplication {
   }
 }
 
+export interface PaginationState {
+  currentPage: number
+  totalPages: number
+  totalItems: number
+  itemsPerPage: number
+  hasMore: boolean
+}
+
+export interface ApplicationFilters {
+  status: string
+  search: string
+  sortBy: string
+  order: 'asc' | 'desc'
+}
+
+const DEFAULT_ITEMS_PER_PAGE = 50
+
 export function useDashboardData() {
   const [user, setUser] = useState<User | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
   const [resumes, setResumes] = useState<Resume[]>([])
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [applicationsLoading, setApplicationsLoading] = useState(false)
   const [token, setToken] = useState<string>('')
   const [error, setError] = useState<string>('')
+
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationState>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: DEFAULT_ITEMS_PER_PAGE,
+    hasMore: false
+  })
+
+  // Filters state
+  const [filters, setFilters] = useState<ApplicationFilters>({
+    status: 'all',
+    search: '',
+    sortBy: 'dateApplied',
+    order: 'desc'
+  })
 
   // Authentication
   const handleAuth = async (email?: string, password?: string, isRegister = false) => {
@@ -69,47 +104,99 @@ export function useDashboardData() {
     }
   }
 
-  // Load all data
-  const loadData = async (authToken: string) => {
+  // Fetch applications with pagination and filters
+  const fetchApplications = useCallback(async (
+    authToken: string,
+    page: number = 1,
+    currentFilters: ApplicationFilters = filters
+  ) => {
     try {
-      // Load user
-      const userResponse = await fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${authToken}` }
+      setApplicationsLoading(true)
+      const offset = (page - 1) * DEFAULT_ITEMS_PER_PAGE
+
+      const params = new URLSearchParams({
+        limit: DEFAULT_ITEMS_PER_PAGE.toString(),
+        offset: offset.toString(),
+        sortBy: currentFilters.sortBy,
+        order: currentFilters.order
       })
-      
-      if (userResponse.ok) {
-        const userData = await userResponse.json()
-        setUser(userData.user)
+
+      if (currentFilters.status && currentFilters.status !== 'all') {
+        params.append('status', currentFilters.status)
       }
 
-      // Load applications
-      const appsResponse = await fetch('/api/applications?limit=100', {
+      if (currentFilters.search) {
+        params.append('company', currentFilters.search)
+      }
+
+      const appsResponse = await fetch(`/api/applications?${params.toString()}`, {
         headers: { Authorization: `Bearer ${authToken}` }
       })
-      
+
       if (appsResponse.ok) {
         const appsData = await appsResponse.json()
         setApplications(appsData.applications || [])
-      }
 
-      // Load resumes
-      const resumesResponse = await fetch('/api/resumes', {
-        headers: { Authorization: `Bearer ${authToken}` }
-      })
-      
-      if (resumesResponse.ok) {
-        const resumesData = await resumesResponse.json()
-        setResumes(resumesData.resumes || [])
-      }
+        const totalItems = appsData.total || 0
+        const totalPages = Math.ceil(totalItems / DEFAULT_ITEMS_PER_PAGE)
 
-      // Load analytics
-      const analyticsResponse = await fetch('/api/analytics', {
-        headers: { Authorization: `Bearer ${authToken}` }
+        setPagination({
+          currentPage: page,
+          totalPages: totalPages || 1,
+          totalItems,
+          itemsPerPage: DEFAULT_ITEMS_PER_PAGE,
+          hasMore: appsData.hasMore || false
+        })
+      }
+    } catch (err) {
+      setError('Failed to fetch applications')
+    } finally {
+      setApplicationsLoading(false)
+    }
+  }, [filters])
+
+  // Load essential data only (user + applications + resumes)
+  // Analytics loaded lazily when needed
+  const loadData = async (authToken: string) => {
+    try {
+      const headers = { Authorization: `Bearer ${authToken}` }
+
+      // Build applications URL
+      const appsParams = new URLSearchParams({
+        limit: DEFAULT_ITEMS_PER_PAGE.toString(),
+        offset: '0',
+        sortBy: filters.sortBy,
+        order: filters.order
       })
-      
-      if (analyticsResponse.ok) {
-        const analyticsData = await analyticsResponse.json()
-        setAnalytics(analyticsData)
+
+      // Only load essential data - skip analytics (it's heavy)
+      const [userResponse, resumesResponse, appsResponse] = await Promise.all([
+        fetch('/api/auth/me', { headers }),
+        fetch('/api/resumes', { headers }),
+        fetch(`/api/applications?${appsParams.toString()}`, { headers })
+      ])
+
+      // Process responses in parallel
+      const [userData, resumesData, appsData] = await Promise.all([
+        userResponse.ok ? userResponse.json() : null,
+        resumesResponse.ok ? resumesResponse.json() : null,
+        appsResponse.ok ? appsResponse.json() : null
+      ])
+
+      if (userData) setUser(userData.user)
+      if (resumesData) setResumes(resumesData.resumes || [])
+
+      if (appsData) {
+        setApplications(appsData.applications || [])
+        const totalItems = appsData.total || 0
+        const totalPages = Math.ceil(totalItems / DEFAULT_ITEMS_PER_PAGE)
+        setPagination({
+          currentPage: 1,
+          totalPages: totalPages || 1,
+          totalItems,
+          itemsPerPage: DEFAULT_ITEMS_PER_PAGE,
+          hasMore: appsData.hasMore || false
+        })
       }
     } catch (err) {
       setError('Failed to load data')
@@ -117,6 +204,45 @@ export function useDashboardData() {
       setLoading(false)
     }
   }
+
+  // Lazy load analytics (call this when user views analytics/overview tab)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
+
+  const loadAnalytics = useCallback(async () => {
+    if (!token || analyticsLoaded || analyticsLoading) return
+
+    setAnalyticsLoading(true)
+    try {
+      const response = await fetch('/api/analytics', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setAnalytics(data)
+        setAnalyticsLoaded(true)
+      }
+    } catch (err) {
+      console.error('Failed to load analytics')
+    } finally {
+      setAnalyticsLoading(false)
+    }
+  }, [token, analyticsLoaded, analyticsLoading])
+
+  // Go to specific page
+  const goToPage = useCallback(async (page: number) => {
+    if (!token || page < 1 || page > pagination.totalPages) return
+    await fetchApplications(token, page, filters)
+  }, [token, pagination.totalPages, filters, fetchApplications])
+
+  // Update filters and refetch
+  const updateFilters = useCallback(async (newFilters: Partial<ApplicationFilters>) => {
+    const updatedFilters = { ...filters, ...newFilters }
+    setFilters(updatedFilters)
+    if (token) {
+      await fetchApplications(token, 1, updatedFilters)
+    }
+  }, [token, filters, fetchApplications])
 
   // Reload analytics only
   const reloadAnalytics = useCallback(async () => {
@@ -352,8 +478,19 @@ export function useDashboardData() {
     resumes,
     analytics,
     loading,
+    applicationsLoading,
+    analyticsLoading,
     error,
     setError,
+
+    // Pagination
+    pagination,
+    filters,
+    goToPage,
+    updateFilters,
+
+    // Lazy loaders
+    loadAnalytics,
 
     // Actions
     handleAuth,

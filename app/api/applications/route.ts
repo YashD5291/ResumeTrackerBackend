@@ -19,11 +19,15 @@ export async function GET(request: NextRequest) {
       await dbConnect()
 
       const filter: any = { userId }
-      
+
       if (status) filter.status = status
       if (tags && tags.length > 0) filter.tags = { $in: tags }
       if (companyName) {
-        filter.companyName = { $regex: companyName, $options: 'i' }
+        // Search both company name and job title
+        filter.$or = [
+          { companyName: { $regex: companyName, $options: 'i' } },
+          { jobTitle: { $regex: companyName, $options: 'i' } }
+        ]
       }
 
       const sortOrder = order === 'desc' ? -1 : 1
