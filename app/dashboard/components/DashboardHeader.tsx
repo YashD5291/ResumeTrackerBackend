@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { User } from '../types'
 
 interface DashboardHeaderProps {
@@ -17,6 +18,8 @@ export default function DashboardHeader({
   resumeCount,
   onLogout
 }: DashboardHeaderProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   const tabs: Array<{ id: 'overview' | 'applications' | 'resumes' | 'analytics'; label: string; badge?: number; icon: JSX.Element }> = [
     { id: 'overview', label: 'Overview', icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,14 +47,14 @@ export default function DashboardHeader({
     <div className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
-          <div className="flex items-center space-x-8">
+          <div className="flex items-center space-x-4 md:space-x-8">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                 Resume Tracker
               </h1>
             </div>
@@ -83,7 +86,7 @@ export default function DashboardHeader({
             </nav>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
               <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
                 {(user.email || user.userId)[0].toUpperCase()}
@@ -101,8 +104,68 @@ export default function DashboardHeader({
               </svg>
               <span className="hidden sm:inline">Logout</span>
             </button>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Mobile navigation */}
+        {mobileMenuOpen && (
+          <nav className="md:hidden pb-4">
+            <div className="flex flex-col gap-1 bg-slate-100/80 rounded-xl p-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id)
+                    setMobileMenuOpen(false)
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    activeTab === tab.id
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                  {tab.badge !== undefined && (
+                    <span className={`ml-auto px-2 py-0.5 text-xs rounded-md ${
+                      activeTab === tab.id
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile user info */}
+            <div className="sm:hidden mt-3 flex items-center gap-2 px-4 py-2 bg-slate-100/80 rounded-xl">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                {(user.email || user.userId)[0].toUpperCase()}
+              </div>
+              <span className="text-sm text-slate-600 truncate">
+                {user.email || `${user.userId.slice(5, 15)}...`}
+              </span>
+            </div>
+          </nav>
+        )}
       </div>
     </div>
   )

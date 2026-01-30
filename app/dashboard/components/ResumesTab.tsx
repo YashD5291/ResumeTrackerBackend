@@ -32,11 +32,11 @@ export default function ResumesTab({
   return (
     <div className="space-y-6">
       {/* Upload Resume Button */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">Resume Management</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Resume Management</h2>
         <button
           onClick={onUploadResume}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-sm sm:text-base w-full sm:w-auto"
         >
           + Upload Resume
         </button>

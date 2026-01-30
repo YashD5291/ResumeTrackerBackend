@@ -117,25 +117,25 @@ export default function OverviewTab({ analytics, applications, resumes, analytic
         <div className="p-6">
           <div className="space-y-3">
             {applications.slice(0, 5).map((app) => (
-              <div key={app.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 hover:bg-gray-50 rounded-lg gap-3">
+                <div className="flex items-center space-x-4 min-w-0">
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-xs font-semibold text-gray-600">
                       {app.companyName.substring(0, 2).toUpperCase()}
                     </span>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{app.companyName}</p>
-                    <p className="text-sm text-gray-500">{app.jobTitle}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{app.companyName}</p>
+                    <p className="text-sm text-gray-500 truncate">{app.jobTitle}</p>
                     {app.resumeName && (
-                      <p className="text-xs text-indigo-600 mt-1">
-                        📄 {app.resumeName}
+                      <p className="text-xs text-indigo-600 mt-1 truncate">
+                        {app.resumeName}
                       </p>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                <div className="flex items-center space-x-3 flex-shrink-0 ml-14 sm:ml-0">
+                  <span className={`px-2 py-1 text-xs rounded-full font-medium whitespace-nowrap ${
                     app.status === 'Applied' ? 'bg-blue-100 text-blue-700' :
                     app.status === 'Interview' ? 'bg-yellow-100 text-yellow-700' :
                     app.status === 'Offer' ? 'bg-purple-100 text-purple-700' :
@@ -145,7 +145,7 @@ export default function OverviewTab({ analytics, applications, resumes, analytic
                   }`}>
                     {app.status}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
                     {new Date(app.dateApplied).toLocaleDateString()}
                   </span>
                 </div>
