@@ -117,7 +117,7 @@ export default function Dashboard() {
   }
 
   // Handle delete with undo
-  const handleDeleteApplicationWithUndo = (id: string) => {
+  const handleDeleteApplicationWithUndo = async (id: string) => {
     // Find the application to delete
     const appToDelete = applications.find(app => app.id === id)
     if (!appToDelete) return
