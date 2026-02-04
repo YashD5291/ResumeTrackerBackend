@@ -7,9 +7,10 @@ interface OverviewTabProps {
   applications: Application[]
   resumes: Resume[]
   analyticsLoading?: boolean
+  onNavigate: (tab: 'overview' | 'applications' | 'resumes' | 'analytics') => void
 }
 
-export default function OverviewTab({ analytics, applications, resumes, analyticsLoading }: OverviewTabProps) {
+export default function OverviewTab({ analytics, applications, resumes, analyticsLoading, onNavigate }: OverviewTabProps) {
   // Skeleton for stats when loading
   const StatSkeleton = () => (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200/60">
@@ -36,75 +37,93 @@ export default function OverviewTab({ analytics, applications, resumes, analytic
           </>
         ) : (
           <>
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <button
+              onClick={() => onNavigate('applications')}
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all duration-200 cursor-pointer text-left w-full group"
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Total Applications</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm text-gray-500 group-hover:text-blue-600 transition-colors">Total Applications</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-1 group-hover:text-blue-600 transition-colors">
                     {analytics?.overview.totalApplications || 0}
                   </p>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
                   <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                {analytics?.overview.recentApplications || 0} this month
+              <p className="text-xs text-gray-500 mt-2 group-hover:text-blue-500 transition-colors">
+                {analytics?.overview.recentApplications || 0} this month · Click to view all
               </p>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <button
+              onClick={() => onNavigate('resumes')}
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-indigo-200 transition-all duration-200 cursor-pointer text-left w-full group"
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Total Resumes</p>
-                  <p className="text-3xl font-bold text-indigo-600 mt-1">
+                  <p className="text-sm text-gray-500 group-hover:text-indigo-600 transition-colors">Total Resumes</p>
+                  <p className="text-3xl font-bold text-indigo-600 mt-1 group-hover:text-indigo-700 transition-colors">
                     {resumes.length}
                   </p>
                 </div>
-                <div className="p-3 bg-indigo-50 rounded-lg">
+                <div className="p-3 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
                   <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Ready to use</p>
-            </div>
+              <p className="text-xs text-gray-500 mt-2 group-hover:text-indigo-500 transition-colors">
+                Ready to use · Click to manage
+              </p>
+            </button>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <button
+              onClick={() => onNavigate('applications')}
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-green-200 transition-all duration-200 cursor-pointer text-left w-full group"
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Response Rate</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">
+                  <p className="text-sm text-gray-500 group-hover:text-green-600 transition-colors">Response Rate</p>
+                  <p className="text-3xl font-bold text-green-600 mt-1 group-hover:text-green-700 transition-colors">
                     {analytics?.overview.responseRate || 0}%
                   </p>
                 </div>
-                <div className="p-3 bg-green-50 rounded-lg">
+                <div className="p-3 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors">
                   <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Companies responded</p>
-            </div>
+              <p className="text-xs text-gray-500 mt-2 group-hover:text-green-500 transition-colors">
+                Companies responded · Click to view
+              </p>
+            </button>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <button
+              onClick={() => onNavigate('analytics')}
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md hover:border-purple-200 transition-all duration-200 cursor-pointer text-left w-full group"
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Success Rate</p>
-                  <p className="text-3xl font-bold text-purple-600 mt-1">
+                  <p className="text-sm text-gray-500 group-hover:text-purple-600 transition-colors">Success Rate</p>
+                  <p className="text-3xl font-bold text-purple-600 mt-1 group-hover:text-purple-700 transition-colors">
                     {analytics?.overview.successRate || 0}%
                   </p>
                 </div>
-                <div className="p-3 bg-purple-50 rounded-lg">
+                <div className="p-3 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors">
                   <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
                   </svg>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Offers received</p>
-            </div>
+              <p className="text-xs text-gray-500 mt-2 group-hover:text-purple-500 transition-colors">
+                Offers received · Click for details
+              </p>
+            </button>
           </>
         )}
       </div>

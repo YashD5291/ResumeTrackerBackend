@@ -54,6 +54,10 @@ export default function Dashboard() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showResumeModal, setShowResumeModal] = useState(false)
 
+  // Undo state for delete operations
+  const [pendingDelete, setPendingDelete] = useState<{id: string, type: 'application' | 'resume', data: any} | null>(null)
+  const [undoTimer, setUndoTimer] = useState<NodeJS.Timeout | null>(null)
+
   // Lazy load analytics when viewing overview or analytics tab
   useEffect(() => {
     if ((activeTab === 'overview' || activeTab === 'analytics') && user) {
@@ -104,6 +108,62 @@ export default function Dashboard() {
     setShowAddModal(false)
   }
 
+  // Handle global search
+  const handleGlobalSearch = (query: string) => {
+    updateFilters({ search: query })
+    if (query && activeTab !== 'applications') {
+      setActiveTab('applications')
+    }
+  }
+
+  // Handle delete with undo
+  const handleDeleteApplicationWithUndo = (id: string) => {
+    // Find the application to delete
+    const appToDelete = applications.find(app => app.id === id)
+    if (!appToDelete) return
+
+    // Clear any existing undo timer
+    if (undoTimer) {
+      clearTimeout(undoTimer)
+    }
+
+    // Show undo toast
+    setPendingDelete({ id, type: 'application', data: appToDelete })
+
+    // Set timer to actually delete after 5 seconds
+    const timer = setTimeout(async () => {
+      await deleteApplication(id)
+      setPendingDelete(null)
+      setUndoTimer(null)
+    }, 5000)
+    setUndoTimer(timer)
+  }
+
+  // Handle undo
+  const handleUndo = () => {
+    if (!pendingDelete || !undoTimer) return
+
+    // Clear the timer - this cancels the deletion
+    clearTimeout(undoTimer)
+    setUndoTimer(null)
+    setPendingDelete(null)
+  }
+
+  // Handle close undo toast (proceeds with deletion immediately)
+  const handleCloseUndo = async () => {
+    if (!pendingDelete) return
+
+    // Clear the timer
+    if (undoTimer) {
+      clearTimeout(undoTimer)
+      setUndoTimer(null)
+    }
+
+    // Proceed with deletion immediately
+    await deleteApplication(pendingDelete.id)
+    setPendingDelete(null)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -148,6 +208,8 @@ export default function Dashboard() {
         setActiveTab={setActiveTab}
         resumeCount={resumes.length}
         onLogout={logout}
+        onSearch={handleGlobalSearch}
+        searchQuery={filters.search}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -158,19 +220,20 @@ export default function Dashboard() {
             applications={applications}
             resumes={resumes}
             analyticsLoading={analyticsLoading}
+            onNavigate={setActiveTab}
           />
         )}
 
         {/* Applications Tab */}
         {activeTab === 'applications' && (
           <ApplicationsTab
-            applications={applications}
+            applications={applications.filter(app => pendingDelete?.id !== app.id)}
             resumes={resumes}
             pagination={pagination}
             filters={filters}
             isLoading={applicationsLoading}
             onUpdateStatus={updateApplicationStatus}
-            onDeleteApplication={deleteApplication}
+            onDeleteApplication={handleDeleteApplicationWithUndo}
             onExportData={exportData}
             onAddApplication={() => setShowAddModal(true)}
             onViewResume={handleViewResume}
@@ -226,7 +289,7 @@ export default function Dashboard() {
 
       {/* Error Toast */}
       {error && (
-        <div className="fixed bottom-6 right-6 bg-red-500 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 right-6 bg-red-500 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300 z-50">
           <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -236,6 +299,34 @@ export default function Dashboard() {
           <button
             onClick={() => setError('')}
             className="ml-2 w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Undo Toast */}
+      {pendingDelete && (
+        <div className="fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-auto bg-slate-800 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300 z-50">
+          <div className="flex-shrink-0 w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <span className="font-medium flex-1">
+            {pendingDelete.type === 'application' ? 'Application deleted' : 'Item deleted'}
+          </span>
+          <button
+            onClick={handleUndo}
+            className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg font-medium transition-colors text-sm"
+          >
+            Undo
+          </button>
+          <button
+            onClick={handleCloseUndo}
+            className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

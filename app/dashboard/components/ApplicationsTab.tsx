@@ -63,6 +63,19 @@ export default function ApplicationsTab({
   onFiltersChange
 }: ApplicationsTabProps) {
   const [searchTerm, setSearchTerm] = useState(filters.search)
+  const localSearchInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-focus search on desktop when tab becomes active
+  useEffect(() => {
+    // Only auto-focus on desktop (screen width > 768px)
+    const isDesktop = window.innerWidth >= 768
+    if (isDesktop && localSearchInputRef.current) {
+      // Small delay to ensure the tab transition is complete
+      setTimeout(() => {
+        localSearchInputRef.current?.focus()
+      }, 100)
+    }
+  }, [])
 
   // Debounce search input
   useEffect(() => {
@@ -73,6 +86,11 @@ export default function ApplicationsTab({
     }, 300)
     return () => clearTimeout(timer)
   }, [searchTerm, filters.search, onFiltersChange])
+
+  // Sync with global search from header
+  useEffect(() => {
+    setSearchTerm(filters.search)
+  }, [filters.search])
 
   const handleStatusFilter = (status: string) => {
     onFiltersChange({ status })
@@ -114,6 +132,7 @@ export default function ApplicationsTab({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
+              ref={localSearchInputRef}
               type="text"
               placeholder="Search applications..."
               value={searchTerm}
@@ -186,25 +205,131 @@ export default function ApplicationsTab({
         )}
       </div>
 
-      {/* Applications Table with Resume Info */}
-      <div className={`bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200/60 transition-opacity duration-200 ${isLoading ? 'opacity-60' : ''}`}>
-        {applications.length === 0 && !isLoading ? (
-          <div className="p-12 text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No applications found</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new application.</p>
-            <button
-              onClick={onAddApplication}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Add Your First Application
-            </button>
+      {/* Applications Table/Cards with Resume Info */}
+      {applications.length === 0 && !isLoading ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-12 text-center">
+          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No applications found</h3>
+          <p className="mt-1 text-sm text-gray-500">Get started by creating a new application.</p>
+          <button
+            onClick={onAddApplication}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Add Your First Application
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Card View */}
+          <div className={`md:hidden space-y-3 transition-opacity duration-200 ${isLoading ? 'opacity-60' : ''}`}>
+            {applications.map((app) => {
+              const resume = app.resumeId ? resumes.find(r => r.id === app.resumeId) : null
+              return (
+                <div key={app.id} className="bg-white rounded-xl shadow-sm border border-slate-200/60 p-4">
+                  {/* Header with Company and Notes */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-slate-900 truncate">{app.companyName}</h3>
+                        {app.notes && (
+                          <NoteTooltip note={app.notes}>
+                            <div className="flex-shrink-0 w-5 h-5 bg-amber-100 text-amber-600 rounded-md flex items-center justify-center">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </div>
+                          </NoteTooltip>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-600 mt-0.5">{app.jobTitle}</p>
+                      {app.site && (
+                        <p className="text-xs text-slate-400 mt-0.5">{app.site}</p>
+                      )}
+                    </div>
+                    <select
+                      value={app.status}
+                      onChange={(e) => onUpdateStatus(app.id, e.target.value)}
+                      className={`text-xs rounded-lg px-2.5 py-1.5 font-medium border-0 cursor-pointer transition-colors flex-shrink-0 ${
+                        app.status === 'Applied' ? 'bg-blue-100 text-blue-700' :
+                        app.status === 'Interview' ? 'bg-amber-100 text-amber-700' :
+                        app.status === 'Offer' ? 'bg-purple-100 text-purple-700' :
+                        app.status === 'Accepted' ? 'bg-emerald-100 text-emerald-700' :
+                        app.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {Object.keys(COLORS).map(status => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="space-y-2 mb-3">
+                    {resume && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 w-16">Resume:</span>
+                        <button
+                          onClick={() => onViewResume(resume.id, resume.filename || 'resume.pdf')}
+                          className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-md hover:bg-indigo-100 transition-colors"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          {resume.name}
+                        </button>
+                      </div>
+                    )}
+                    {app.salary?.amount && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 w-16">Salary:</span>
+                        <span className="text-xs text-slate-700">
+                          ${app.salary.amount.toLocaleString()} {app.salary.type}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500 w-16">Applied:</span>
+                      <span className="text-xs text-slate-700">
+                        {new Date(app.dateApplied).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                    <a
+                      href={app.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 text-xs font-medium"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      Open Job
+                    </a>
+                    <button
+                      onClick={() => onDeleteApplication(app.id)}
+                      className="px-3 py-2 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 text-xs font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+
+          {/* Desktop Table View */}
+          <div className={`hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200/60 transition-opacity duration-200 ${isLoading ? 'opacity-60' : ''}`}>
+            <div className="overflow-x-auto">
+              <table className="w-full">
               <thead className="bg-slate-50/80">
                 <tr>
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
@@ -326,8 +451,9 @@ export default function ApplicationsTab({
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+        </>
+      )}
 
       {/* Pagination Controls */}
       {pagination.totalPages > 1 && (
